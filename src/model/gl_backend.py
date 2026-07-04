@@ -2,14 +2,11 @@ import math
 import numpy as np
 import glfw
 import glm
-from typing import Union, Optional
+from typing import Union
 import threading
 import queue
 import time
 import traceback
-import logging
-import json
-import cv2
 
 # To be imported after GLVolumeViewer render thread is 
 # initialized, so that GL context is available.
