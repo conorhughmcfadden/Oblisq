@@ -5,8 +5,8 @@ from tkinter import colorchooser
 
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
-from view.viewer import ChannelWidgetBox
-from model.gl_backend import GLVolumeViewBackend
+from volumeviewer.view.viewer import ChannelWidgetBox
+from volumeviewer.model.gl_backend import GLVolumeViewBackend
 
 DEFAULT_COLORS = [
     [255, 255, 255],

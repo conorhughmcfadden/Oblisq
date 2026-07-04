@@ -2,9 +2,9 @@ import time
 import tkinter as tk
 
 # Local imports
-from model.gl_backend import GLVolumeViewBackend
-from view.viewer import VolumeViewerStandalone
-from controller.vv_controller import VVStandaloneController
+from volumeviewer.model.gl_backend import GLVolumeViewBackend
+from volumeviewer.view.viewer import VolumeViewerStandalone
+from volumeviewer.controller.vv_controller import VVStandaloneController
 
 class VolumeViewer:
     def __init__(self, root: tk.Tk=None, splash_screen: tk.Toplevel=None):

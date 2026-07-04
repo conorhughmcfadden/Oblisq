@@ -3,7 +3,7 @@ import tkinter as tk
 
 from tkinterdnd2 import TkinterDnD
 
-from widgets import LabelInput, ValidatedSpinbox
+from volumeviewer.view.widgets import LabelInput, ValidatedSpinbox
 
 WINDOW_DIMENSIONS = (400, 600)
 

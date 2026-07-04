@@ -17,11 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-volumeviewer = "main:main"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-py-modules = ["main"]
+volumeviewer = "volumeviewer.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
