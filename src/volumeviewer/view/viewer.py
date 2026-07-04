@@ -80,7 +80,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 label="Z-Step Size",
                 input_class=ValidatedSpinbox,
                 input_var=tk.DoubleVar(value=0.4),
-                input_args={"from_": 0.01, "to": np.Inf, "increment": 0.01, "width": 8},
+                input_args={"from_": 0.01, "to": np.inf, "increment": 0.01, "width": 8},
                 label_pos="top",
             ),
             "px": LabelInput(
@@ -88,7 +88,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 label="Pixel Size",
                 input_class=ValidatedSpinbox,
                 input_var=tk.DoubleVar(value=0.1478),
-                input_args={"from_": 0.0001, "to": np.Inf, "increment": 0.0001, "width": 8},
+                input_args={"from_": 0.0001, "to": np.inf, "increment": 0.0001, "width": 8},
                 label_pos="top",
             ),
             "opacity": LabelInput(
