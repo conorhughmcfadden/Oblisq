@@ -171,7 +171,7 @@ class VVStandaloneController:
         exec(f"self.backend.set_{field}({value})")
 
     def on_drop(self, event):
-        dropped_files = event.data.split()
+        dropped_files = list(self.view.tk.splitlist(event.data))
         dropped_files.sort()
 
         # Destroy existing channel widgets before building new ones
