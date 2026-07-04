@@ -36,6 +36,9 @@ class VolumeViewer:
         if self.backend.thread_is_running():
             self.backend.stop()
 
-if __name__ == "__main__":
+def main():
     volume_viewer = VolumeViewer()
     volume_viewer.mainloop()
+
+if __name__ == "__main__":
+    main()
