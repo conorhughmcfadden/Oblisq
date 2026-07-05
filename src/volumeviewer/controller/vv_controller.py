@@ -254,7 +254,10 @@ class VVStandaloneController:
                 self.view.after(100, self.channels[channel_name]._gl_upload_stack_to_backend)
 
                 # Autoscale the min/max values for this channel
-                self.view.after(200, self.channels[channel_name].scale_volume_min_max)
+                self.view.after(150, self.channels[channel_name].scale_volume_min_max)
+
+                # Initial update gamma
+                self.view.after(200, self.channels[channel_name].update_gamma)
 
         # Reinitialize shader uniforms on-load
         for key in self.view.inputs:

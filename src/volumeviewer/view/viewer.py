@@ -24,6 +24,14 @@ class ChannelWidgetBox(tk.Frame):
                 label="Color:",
                 input_class=tk.Button
                 ),
+            "gamma": LabelInput(
+                parent=self,
+                label="Gamma:",
+                input_class=ValidatedSpinbox,
+                input_var=tk.DoubleVar(value=0.6),
+                input_args={"from_": 0.1, "to": 5.0, "increment": 0.05, "width": 8},
+                label_pos="top",
+            ),                
             "min": LabelInput(
                 parent=self,
                 label="Min:",
@@ -128,8 +136,12 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
         for input_widget in self.inputs.values():
             input_widget.pack(side=tk.LEFT, expand=True)
 
+        for button in self.buttons.values():
+            button.pack(side=tk.LEFT, expand=True)
+
         volume_settings_frame.pack(fill=tk.X)
         render_settings_frame.pack(fill=tk.X)
+        camera_settings_frame.pack(fill=tk.X)        
 
         self.channels_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
         self.channels_frame.pack(fill=tk.BOTH)
