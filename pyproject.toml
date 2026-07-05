@@ -12,9 +12,9 @@ dependencies = [
     "PyOpenGL",
     "glfw",
     "PyGLM",
-    "tifffile",
+    "tifffile>=2026",
     "tkinterdnd2",
-    "dask[array]",
+    "dask",
     "zarr"
 ]
 
