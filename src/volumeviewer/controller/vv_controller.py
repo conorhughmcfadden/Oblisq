@@ -1,6 +1,7 @@
 import numpy as np
 import tifffile
 import pathlib
+import dask.array as da
 from tkinter import colorchooser
 
 from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -119,7 +120,24 @@ class ChannelController:
                 self.resolution['px'] = float(self.parent.view.inputs['px'].get())
 
             # load the data
-            self.stack_data = tif.asarray()
+            self.stack_data = self._lazy_load_downsampled_tif(stack_path, stride=4)
+
+    @staticmethod
+    def _lazy_load_downsampled_tif(stack_path: str, stride: int=1) -> np.ndarray:
+        """
+        Lazily load a downsampled version of the TIFF stack using dask.
+
+        Parameters:
+        - stack_path: The path to the TIFF file.
+        - stride: The downsampling factor. A stride of 1 means no downsampling.
+
+        Returns:
+        - A numpy array containing the downsampled stack.
+        """
+        dask_arr = da.from_zarr(tifffile.imread(stack_path, aszarr=True))  # Load the TIFF as a dask array
+        downsampled = dask_arr[::stride, ::stride, ::stride]  # Downsample by a factor of stride in all dimensions
+        
+        return downsampled.compute()
 
     def choose_color(self):
 

@@ -8,12 +8,14 @@ version = "0.1.0"
 description = "3D Volume viewer for microscopy data"
 requires-python = ">=3.11"
 dependencies = [
-    "numpy",
+    "numpy<2.3.0",
     "PyOpenGL",
     "glfw",
     "PyGLM",
     "tifffile",
     "tkinterdnd2",
+    "dask[array]",
+    "zarr"
 ]
 
 [project.scripts]
