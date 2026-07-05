@@ -1,8 +1,10 @@
+
 import numpy as np
 import tifffile
 import pathlib
 import dask.array as da
-from tkinter import colorchooser
+
+from tkinter import colorchooser, filedialog
 
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
@@ -94,8 +96,8 @@ class ChannelController:
     def _gl_update_min_max(self):
 
         try:
-            _min = 0.5 * float(self.min.get())
-            _max = 0.5 * float(self.max.get())
+            _min = float(self.min.get())
+            _max = float(self.max.get())
         except:
             return
 
@@ -171,8 +173,8 @@ class ChannelController:
 
     def scale_volume_min_max(self):
 
-        self.min.set(int(self.stack_data.min()))
-        self.max.set(int(self.stack_data.max()))
+        self.min.set(int(1.5 * self.stack_data.min()))
+        self.max.set(int(0.7 * self.stack_data.max()))
 
         self._gl_update_min_max()
 
@@ -183,6 +185,8 @@ class VVStandaloneController:
 
         self.view.main_frame.drop_target_register(DND_FILES)
         self.view.main_frame.dnd_bind('<<Drop>>', self.on_drop)
+
+        self.working_directory = None
 
         # trace adds for inputs
         # Trace adds for volume display widgets
@@ -203,8 +207,26 @@ class VVStandaloneController:
         buttons["z"].configure(command=lambda: self.backend.camera.set_angular_position(90, 0))
         buttons["reset"].configure(command=lambda: self.backend.camera.set_angular_position(45, 45))
 
+        # save screen button
+        buttons["save"].configure(command=self._gl_save_viewport_screenshot)
+
         # dict: holds Channels objects
         self.channels = {}
+
+    def _gl_save_viewport_screenshot(self):
+        # Get the current viewport image from the backend
+        viewport_image = self.backend.get_viewport_as_npimage()
+
+        save_path = filedialog.asksaveasfilename(
+            initialdir=self.working_directory,
+            defaultextension=".tif",
+            filetypes=[("TIFF files", "*.tif*")],
+        )
+
+        # Save the image using tifffile
+        tifffile.imwrite(save_path, viewport_image)
+
+        print(f"Viewport screenshot saved to {save_path}")
 
     def _gl_on_volume_settings_changed(self, field, *args):
         """Hook for OpenGL-based views to trigger a re-render when display settings are changed."""
@@ -241,6 +263,10 @@ class VVStandaloneController:
 
         for i, file_path in enumerate(dropped_files):
             path = pathlib.Path(file_path)
+
+            working_dir = path.parent
+            if working_dir != self.working_directory:
+                self.working_directory = working_dir
 
             if path.suffix.lower() in ['.tif', '.tiff']:
                 channel_name = path.name.split('.')[0]

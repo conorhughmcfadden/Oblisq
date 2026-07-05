@@ -743,6 +743,53 @@ class GLVolumeViewBackend:
         else:
             self.stop()
 
+    def get_viewport_as_npimage(self, timeout: float=5.0):
+        """Return the current viewport as a numpy array (RGB).
+
+        The GL context is only current on the render thread, so the actual
+        pixel read is executed there via cmd_q; this call blocks until done.
+        """
+        if not self.thread_is_running():
+            raise RuntimeError("GL render thread is not running")
+
+        done = threading.Event()
+        result = {}
+
+        def _do():
+            try:
+                self._ensure_gl_ready()
+
+                # Get window size
+                width, height = glfw.get_framebuffer_size(self.window)
+
+                # Read pixels from the framebuffer. Read GL_FRONT explicitly:
+                # this is a double-buffered context, and GL_BACK (the default
+                # read buffer) can still hold a stale, previously-displayed
+                # frame if no re-render happened between the last swap and now.
+                GL.glPixelStorei(GL.GL_PACK_ALIGNMENT, 1)
+                GL.glReadBuffer(GL.GL_FRONT)
+                pixels = GL.glReadPixels(0, 0, width, height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE)
+
+                # Convert to numpy array and reshape
+                image = np.frombuffer(pixels, dtype=np.uint8).reshape(height, width, 3)
+
+                # Flip vertically to match OpenGL's coordinate system
+                result["image"] = np.flipud(image)
+            except Exception as e:
+                result["error"] = e
+            finally:
+                done.set()
+
+        self.cmd_q.put(_do)
+
+        if not done.wait(timeout=timeout):
+            raise RuntimeError("Timed out waiting for GL thread to capture viewport")
+
+        if "error" in result:
+            raise result["error"]
+
+        return result["image"]
+
     def _set_glfw_window_visible(self, visible: bool=True):
         if self.window:
             if visible:

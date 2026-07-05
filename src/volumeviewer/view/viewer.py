@@ -28,7 +28,7 @@ class ChannelWidgetBox(tk.Frame):
                 parent=self,
                 label="Gamma:",
                 input_class=ValidatedSpinbox,
-                input_var=tk.DoubleVar(value=0.5),
+                input_var=tk.DoubleVar(value=0.7),
                 input_args={"from_": 0.1, "to": 5.0, "increment": 0.05, "width": 8},
                 label_pos="top",
             ),                
@@ -104,7 +104,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 parent=render_settings_frame,
                 label="Opacity",
                 input_class=ValidatedSpinbox,
-                input_var=tk.DoubleVar(value=0.15),
+                input_var=tk.DoubleVar(value=0.25),
                 input_args={"from_": 0.01, "to": 1.0, "increment": 0.01, "width": 8},
                 label_pos="top",
             ),
@@ -112,7 +112,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 parent=render_settings_frame,
                 label="World Step",
                 input_class=ValidatedSpinbox,
-                input_var=tk.DoubleVar(value=1.0),
+                input_var=tk.DoubleVar(value=0.5),
                 input_args={"from_": 0.05, "to": 10.0, "increment": 0.05, "width": 8},
                 label_pos="top",
             ),
@@ -131,6 +131,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
             "y": tk.Button(camera_settings_frame, text="Y", width=5),
             "z": tk.Button(camera_settings_frame, text="Z", width=5),
             "reset": tk.Button(camera_settings_frame, text="Reset", width=5),
+            "save": tk.Button(camera_settings_frame, text="SAVE", width=5),
         }
 
         for input_widget in self.inputs.values():
