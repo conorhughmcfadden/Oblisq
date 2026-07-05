@@ -94,8 +94,8 @@ class ChannelController:
     def _gl_update_min_max(self):
 
         try:
-            _min = float(self.min.get())
-            _max = float(self.max.get())
+            _min = 0.5 * float(self.min.get())
+            _max = 0.5 * float(self.max.get())
         except:
             return
 
@@ -232,11 +232,12 @@ class VVStandaloneController:
         self.channels.clear()
 
         # Reset if running
-        if self.backend.thread_is_running():
-            self.backend.stop()
+        # if self.backend.thread_is_running():
+        #     self.backend.stop()
 
         # Start GL backend
-        self.backend.start()
+        if not self.backend.thread_is_running():
+            self.backend.start()
 
         for i, file_path in enumerate(dropped_files):
             path = pathlib.Path(file_path)
@@ -258,6 +259,9 @@ class VVStandaloneController:
 
                 # Initial update gamma
                 self.view.after(200, self.channels[channel_name].update_gamma)
+
+                # Set view to z using invoked button press
+                self.view.after(500, lambda: self.view.buttons["z"].invoke())
 
         # Reinitialize shader uniforms on-load
         for key in self.view.inputs:

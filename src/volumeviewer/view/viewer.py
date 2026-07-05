@@ -28,7 +28,7 @@ class ChannelWidgetBox(tk.Frame):
                 parent=self,
                 label="Gamma:",
                 input_class=ValidatedSpinbox,
-                input_var=tk.DoubleVar(value=0.6),
+                input_var=tk.DoubleVar(value=0.5),
                 input_args={"from_": 0.1, "to": 5.0, "increment": 0.05, "width": 8},
                 label_pos="top",
             ),                

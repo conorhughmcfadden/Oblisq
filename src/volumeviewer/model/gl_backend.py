@@ -253,7 +253,7 @@ class Camera:
         S = glm.vec3(largest_dimension)
 
         # Set the radius = 1.5 x (bbox sphere diameter). Just fits nice.
-        diam = 1.5 * float(glm.length(S))
+        diam = 1.0 * float(glm.length(S))
         self.radius = max(self.MIN_RADIUS, diam)
 
         # Compute ortho size based on FOV and radius
@@ -264,6 +264,14 @@ class Camera:
         self._recompute_position()
 
     def set_angular_position(self, pitch: float, yaw: float):
+        """
+            Set the camera's angular position in degrees.
+            pitch: rotation around X-axis (up/down)
+            yaw: rotation around Y-axis (left/right)
+        """
+        # Better in ortho mode:
+        self.is_ortho_proj = True
+
         self.pitch = glm.radians(pitch)
         self.yaw   = glm.radians(yaw)
         self._recompute_position()
