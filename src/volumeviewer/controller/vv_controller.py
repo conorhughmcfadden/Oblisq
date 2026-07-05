@@ -48,6 +48,11 @@ class ChannelController:
         self.min = inputs["min"].variable
         self.max = inputs["max"].variable
 
+        self.gamma = inputs["gamma"].variable
+        self.min   = inputs["min"].variable
+        self.max   = inputs["max"].variable
+ 
+        self.gamma.trace_add("write", self.update_gamma)
         self.min.trace_add("write", self.update_min_max)
         self.max.trace_add("write", self.update_min_max)
 
@@ -61,6 +66,9 @@ class ChannelController:
 
     def update_min_max(self, *args):
         self._gl_update_min_max()
+
+    def update_gamma(self, *args):
+        self._gl_update_gamma()
 
     def _gl_upload_stack_to_backend(self):
 
@@ -92,6 +100,14 @@ class ChannelController:
             return
 
         self.parent.backend.set_min_max([_min, _max], self.id)
+
+    def _gl_update_gamma(self):
+        try:
+            _gamma = float(self.gamma.get())
+        except:
+            return
+
+        self.parent.backend.set_gamma(_gamma, self.id)
 
     def load_stack(self, stack_path: str) -> np.ndarray:
         # Get the stride value from the parent controller's inputs
@@ -179,6 +195,13 @@ class VVStandaloneController:
 
         for key, widget in self.inputs.items():
             widget.get_variable().trace_add("write", volume_setting_callback(key))
+
+        buttons = self.view.buttons
+        # Button commands for camera orientation
+        buttons["x"].configure(command=lambda: self.backend.camera.set_angular_position(0, 0))
+        buttons["y"].configure(command=lambda: self.backend.camera.set_angular_position(0, 90))
+        buttons["z"].configure(command=lambda: self.backend.camera.set_angular_position(90, 0))
+        buttons["reset"].configure(command=lambda: self.backend.camera.set_angular_position(45, 45))
 
         # dict: holds Channels objects
         self.channels = {}

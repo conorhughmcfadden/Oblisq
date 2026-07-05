@@ -65,6 +65,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
 
         volume_settings_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
         render_settings_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
+        camera_settings_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
 
         self.inputs = {
             "shear_angle": LabelInput(
@@ -115,6 +116,13 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 input_args={"from_": 1, "to": 16, "increment": 1, "width": 8},
                 label_pos="top",
             )
+        }
+
+        self.buttons = {
+            "x": tk.Button(camera_settings_frame, text="X", width=5),
+            "y": tk.Button(camera_settings_frame, text="Y", width=5),
+            "z": tk.Button(camera_settings_frame, text="Z", width=5),
+            "reset": tk.Button(camera_settings_frame, text="Reset", width=5),
         }
 
         for input_widget in self.inputs.values():

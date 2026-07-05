@@ -263,6 +263,14 @@ class Camera:
         # Recompute position based on new radius
         self._recompute_position()
 
+    def set_angular_position(self, pitch: float, yaw: float):
+        self.pitch = glm.radians(pitch)
+        self.yaw   = glm.radians(yaw)
+        self._recompute_position()
+
+        # request render
+        self.parent_viewer.need_render = True
+
     # ---------- callbacks ----------
     def _key_callback(self, window, key, scancode, action, mods):
         if key == glfw.KEY_TAB and action == glfw.PRESS:
