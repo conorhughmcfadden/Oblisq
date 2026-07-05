@@ -15,7 +15,8 @@ dependencies = [
     "tifffile>=2026",
     "tkinterdnd2",
     "dask",
-    "zarr"
+    "zarr",
+    "imagecodecs"
 ]
 
 [project.scripts]
