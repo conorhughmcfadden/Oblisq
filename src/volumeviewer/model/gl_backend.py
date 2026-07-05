@@ -506,10 +506,11 @@ class GLVolumeViewBackend:
         self.transfer_texture = None
 
         # image properties       
-        self.luts                 = None
-        self.volume_shape         = None
-        self.num_slices           = 1
-        self.min_max              = [0, 65535]
+        self.luts         = None
+        self.volume_shape = None
+        self.num_slices   = 1
+        self.min_max      = [0, 65535]
+        self.stride       = 1
         
         # state
         self._ch = 0
@@ -626,22 +627,22 @@ class GLVolumeViewBackend:
         self.set_px(px)
 
     def set_dz(self, dz: float):
-        self._dz = dz
+        self._dz = self.stride * dz
         
         def _do():
             self._ensure_gl_ready()
             self.shader.use()
-            self.shader.set_float("dz", dz)
+            self.shader.set_float("dz", self._dz)
         
         self.cmd_q.put(_do)
 
     def set_px(self, px: float):
-        self._px = px
+        self._px = self.stride * px
         
         def _do():
             self._ensure_gl_ready()
             self.shader.use()
-            self.shader.set_float("px", px)
+            self.shader.set_float("px", self._px)
         
         self.cmd_q.put(_do)
 

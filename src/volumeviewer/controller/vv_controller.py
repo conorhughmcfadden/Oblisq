@@ -94,6 +94,10 @@ class ChannelController:
         self.parent.backend.set_min_max([_min, _max], self.id)
 
     def load_stack(self, stack_path: str) -> np.ndarray:
+        # Get the stride value from the parent controller's inputs
+        stride = int(self.parent.stride.get())
+        self.parent.backend.stride = stride  # Update the backend's stride value
+        
         with tifffile.TiffFile(stack_path) as tif:
 
             # z-spacing
@@ -120,7 +124,7 @@ class ChannelController:
                 self.resolution['px'] = float(self.parent.view.inputs['px'].get())
 
             # load the data
-            self.stack_data = self._lazy_load_downsampled_tif(stack_path, stride=4)
+            self.stack_data = self._lazy_load_downsampled_tif(stack_path, stride=stride)
 
     @staticmethod
     def _lazy_load_downsampled_tif(stack_path: str, stride: int=1) -> np.ndarray:
@@ -169,7 +173,11 @@ class VVStandaloneController:
         def volume_setting_callback(field):
             return lambda *args: self._gl_on_volume_settings_changed(field, *args)
 
-        for key, widget in self.view.inputs.items():
+        self.inputs = self.view.inputs
+        
+        self.stride = self.inputs["downsample"].get_variable()
+
+        for key, widget in self.inputs.items():
             widget.get_variable().trace_add("write", volume_setting_callback(key))
 
         # dict: holds Channels objects
@@ -178,7 +186,7 @@ class VVStandaloneController:
     def _gl_on_volume_settings_changed(self, field, *args):
         """Hook for OpenGL-based views to trigger a re-render when display settings are changed."""
 
-        variable = self.view.inputs[field].get_variable()
+        variable = self.inputs[field].get_variable()
 
         try:
             value = float(variable.get())
@@ -186,7 +194,10 @@ class VVStandaloneController:
             # Handle "" and other such invalid inputs
             return
 
-        exec(f"self.backend.set_{field}({value})")
+        try:
+            exec(f"self.backend.set_{field}({value})")
+        except AttributeError:
+            pass
 
     def on_drop(self, event):
         dropped_files = list(self.view.tk.splitlist(event.data))
