@@ -106,6 +106,14 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 input_var=tk.DoubleVar(value=1.0),
                 input_args={"from_": 0.05, "to": 10.0, "increment": 0.05, "width": 8},
                 label_pos="top",
+            ),
+            "downsample": LabelInput(
+                parent=render_settings_frame,
+                label="Downsample",
+                input_class=ValidatedSpinbox,
+                input_var=tk.IntVar(value=1),
+                input_args={"from_": 1, "to": 16, "increment": 1, "width": 8},
+                label_pos="top",
             )
         }
 
