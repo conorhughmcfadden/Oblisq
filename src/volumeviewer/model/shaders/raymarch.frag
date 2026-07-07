@@ -21,6 +21,7 @@ uniform float stepWorld = 0.25;       // step length in WORLD units
 uniform float opacity = 0.15;  // global density/opacity
 uniform vec2 cMinMax[5];
 uniform float cGamma[5] = float[5](1.0, 1.0, 1.0, 1.0, 1.0);
+uniform vec3 bgColor = vec3(0.0);
 
 // channels
 uniform int nChannels = 5; // hard-coded: navigate has 5 channels max
@@ -118,8 +119,12 @@ void main()
 
     // -------- AABB in object space --------
     float tEnter, tExit;
-    if (!intersectAABB(ro, rd, boxMin_um, boxMax_um, tEnter, tExit)) 
-        discard;
+    if (!intersectAABB(ro, rd, boxMin_um, boxMax_um, tEnter, tExit)) {
+        // Ray misses the volume entirely: paint background color directly,
+        // since the compositing step below never runs for this fragment.
+        FragColor = vec4(bgColor, 1.0);
+        return;
+    }
     tEnter = max(tEnter, 0.0);
 
     // “steps per voxel” along this ray (orientation aware)
@@ -158,12 +163,15 @@ void main()
             float row = (float(i) + 0.5) / float(nChannels); // normalized row position
             vec4 tf = texture(transfer, vec2(sW, row));
 
-            // don't composite zeros
-            if (tf.rgb == vec3(0.0)) continue;
+            // don't composite empty (zero-opacity) samples
+            if (tf.a <= 0.0)
+                continue;
 
-            // optional gamma
             vec3 rgb = tf.rgb;
-            if (cGamma[i] != 1.0) rgb = pow(rgb, vec3(cGamma[i]));
+            
+            // optional gamma
+            if (cGamma[i] != 1.0) 
+                rgb = pow(rgb, vec3(cGamma[i]));
 
             // Beer-Lambert step-invariant opacity based on tf.alpha
             float a = 1.0 - exp(-opacity * tf.a * kStep);
@@ -175,5 +183,5 @@ void main()
         }
     }
     
-    FragColor = acc;
+    FragColor = vec4(acc.rgb + (1.0 - acc.a) * bgColor, 1.0);
 }

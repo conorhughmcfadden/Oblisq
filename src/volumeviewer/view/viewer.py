@@ -123,7 +123,14 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 input_var=tk.IntVar(value=1),
                 input_args={"from_": 1, "to": 16, "increment": 1, "width": 8},
                 label_pos="top",
-            )
+            ),            
+            "invert_lut": LabelInput(
+                parent=render_settings_frame,
+                label="Invert LUT",
+                input_class=tk.Checkbutton,
+                input_var=tk.BooleanVar(value=False),
+                label_pos="top",
+            )          
         }
 
         self.buttons = {

@@ -76,6 +76,7 @@ class LabelInput(tk.Frame):
     """
 
     _BUTTON_CLASSES = (tk.Button, ttk.Button)
+    _CHECK_CLASSES = (tk.Checkbutton, ttk.Checkbutton)
 
     def __init__(
         self,
@@ -97,7 +98,9 @@ class LabelInput(tk.Frame):
         self.input_class = input_class
         self.label = tk.Label(self, text=label, **label_args)
 
-        if input_class not in self._BUTTON_CLASSES:
+        if input_class in self._CHECK_CLASSES:
+            input_args["variable"] = input_var
+        elif input_class not in self._BUTTON_CLASSES:
             input_args["textvariable"] = input_var
 
         self.widget = input_class(self, **input_args)

@@ -521,8 +521,9 @@ class GLVolumeViewBackend:
         self.volume_textures  = None
         self.transfer_texture = None
 
-        # image properties       
+        # image properties
         self.luts         = None
+        self.invert_lut   = False
         self.volume_shape = None
         self.num_slices   = 1
         self.min_max      = [0, 65535]
@@ -733,6 +734,18 @@ class GLVolumeViewBackend:
                 "opacity", 
                 opacity
                 )
+
+        self.cmd_q.put(_do)
+
+    def set_invert_lut(self, invert: bool):
+        """Toggle ImageJ-style inverted LUT display (light background, hue preserved)."""
+        self.invert_lut = bool(invert)
+
+        print(f"[GL] Invert LUT set to {self.invert_lut}")
+
+        def _do():
+            self._ensure_gl_ready()
+            self._gl_apply_invert_lut()
 
         self.cmd_q.put(_do)
 
@@ -1037,6 +1050,7 @@ class GLVolumeViewBackend:
         self.shader.set_float("stepWorld", 0.25)
         self.shader.set_float("opacity", 0.15)
         self.shader.set_int("doBox", 0)  # box now drawn via GL_LINES
+        self.shader.set_vec3("bgColor", (1.0, 1.0, 1.0) if self.invert_lut else (0.0, 0.0, 0.0))
 
     def _set_volume_texture_units(self):
         """Assign shader texture units for volume (n-color channels) and transfer function."""
@@ -1191,6 +1205,12 @@ class GLVolumeViewBackend:
             self._gl_make_transfer_texture()
             self._gl_set_channel_lut(ch, rgba_color)
 
+        # Remember color per-channel so the ramp can be regenerated later
+        # (e.g. when invert_lut is toggled)
+        if self.luts is None:
+            self.luts = [[1., 1., 1., 1.]] * self.MAX_N_COLOR_CHANNELS
+        self.luts[ch] = list(rgba_color)
+
         # Work with transfer texture
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.transfer_texture)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
@@ -1205,8 +1225,18 @@ class GLVolumeViewBackend:
             1,                   # height
             GL.GL_RGBA,          # format
             GL.GL_UNSIGNED_BYTE, # uint8
-            self._create_u8_rgba_ramp(rgba_color)  
+            self._create_u8_rgba_ramp(rgba_color)
         )
+
+    def _gl_apply_invert_lut(self):
+        """Re-upload transfer ramps and background color after invert_lut changes."""
+        self.shader.use()
+        bg = (1.0, 1.0, 1.0) if self.invert_lut else (0.0, 0.0, 0.0)
+        self.shader.set_vec3("bgColor", bg)
+
+        if self.transfer_texture and self.luts:
+            for ch, color in enumerate(self.luts):
+                self._gl_set_channel_lut(ch, color)
 
     def _create_u8_rgba_ramp(self, x: list):
         if np.ndim(x) == 2:
@@ -1214,13 +1244,26 @@ class GLVolumeViewBackend:
             for color in x:
                 output.append(self._create_u8_rgba_ramp(color))
         elif np.ndim(x) == 1:
-            output = np.linspace(0, 255, 256)[..., np.newaxis] \
-                   * np.array(x)[np.newaxis, :]
+            color = np.array(x, dtype=float)
+            idx = np.linspace(0, 255, 256)[..., np.newaxis]  # (256, 1)
+
+            if self.invert_lut:
+                # ImageJ-style "Invert LUT": only the displayed RGB hue inverts
+                # (p -> 255*color - p), so background renders light while a
+                # given channel's color is preserved. Alpha (opacity) is left
+                # un-inverted so it still ramps transparent->opaque with
+                # intensity; otherwise background samples would become fully
+                # opaque and signal would vanish.
+                rgb = (255.0 - idx) * color[np.newaxis, :3]
+                alpha = idx * color[3]  # already (256, 1), idx is a column vector
+                output = np.concatenate([rgb, alpha], axis=1)
+            else:
+                output = idx * color[np.newaxis, :]
         else:
             print(f"Invalid color list dimensions! ndim={np.ndim(x)}")
             raise ValueError
-        
-        return np.asarray(output).astype(np.uint8)
+
+        return np.clip(np.asarray(output), 0, 255).astype(np.uint8)
 
     def _gl_make_transfer_texture(self):
         """Create transfer function texture (2D)"""
