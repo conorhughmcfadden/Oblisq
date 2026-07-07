@@ -50,13 +50,15 @@ class ChannelController:
         self.min = inputs["min"].variable
         self.max = inputs["max"].variable
 
+        self.show = inputs["show"].variable
         self.gamma = inputs["gamma"].variable
         self.min   = inputs["min"].variable
         self.max   = inputs["max"].variable
  
+        self.show.trace_add("write",  self.set_show)
         self.gamma.trace_add("write", self.update_gamma)
-        self.min.trace_add("write", self.update_min_max)
-        self.max.trace_add("write", self.update_min_max)
+        self.min.trace_add("write",   self.update_min_max)
+        self.max.trace_add("write",   self.update_min_max)
 
         inputs["color"].widget.configure(
             command=self.choose_color,
@@ -66,11 +68,17 @@ class ChannelController:
             command=self.scale_volume_min_max
         )
 
+    def set_show(self, *args):
+        self._gl_set_show()
+
     def update_min_max(self, *args):
         self._gl_update_min_max()
 
     def update_gamma(self, *args):
         self._gl_update_gamma()
+
+    def _gl_set_show(self):
+        self.parent.backend.set_show(self.show.get(), self.id)
 
     def _gl_upload_stack_to_backend(self):
 

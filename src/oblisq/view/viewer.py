@@ -24,6 +24,13 @@ class ChannelWidgetBox(tk.Frame):
                 label="Color:",
                 input_class=tk.Button
                 ),
+            "show": LabelInput(
+                parent=self,
+                label="",
+                input_class=tk.Checkbutton,
+                input_var=tk.BooleanVar(value=True),
+                label_pos="top",
+            ),                   
             "gamma": LabelInput(
                 parent=self,
                 label="Gamma:",
