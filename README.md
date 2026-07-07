@@ -1,16 +1,26 @@
-# VolumeViewer
-3D Volume viewer for microscopy data
+# Oblisq
+3D Rendering Tool for Oblique Microscopy Data
 
-## Setup
+![Screenshot](images/screenshot.PNG)
 
+## Requirements
+- GPU + NVIDIA drivers supporting OpenGL 4.3 Core Profile
+- Windows or Linux
+- Anaconda with Python 3.11+
+
+## Installation
+
+```console
+conda env create -n oblisq python=3.11
+conda activate oblisq
+
+cd /directory/to/cloned/repo/Oblisq
+pip install -e .
 ```
-conda env create -f environment.yml -p /path/on/big/drive/volumeviewer
-conda activate /path/on/big/drive/volumeviewer
-volumeviewer
+
+## Startup
+
+```console
+conda activate oblisq
+oblisq
 ```
-
-The path passed to `-p` can be anywhere with enough disk space (e.g. a data drive rather than your home directory's default conda envs location).
-
-### Prerequisites
-- A GPU/driver supporting OpenGL 4.3 core profile.
-- A real display available to the process (local desktop, `ssh -X`, or VNC). GLFW cannot open a window on a headless terminal session.
