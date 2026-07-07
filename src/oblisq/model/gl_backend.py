@@ -673,6 +673,21 @@ class GLVolumeViewBackend:
         # request render
         self.need_render = True
 
+    def set_show(self, show: bool, ch: int=-1):
+        if ch < 0:
+            ch = self._ch
+
+        def _do():
+            self._ensure_gl_ready()
+
+            self.shader.use()
+            self.shader.set_int(
+                f"show[{ch}]", 
+                int(show)
+                )
+
+        self.cmd_q.put(_do)
+
     def set_min_max(self, min_max: list, ch: int=-1):
         if ch < 0:
             ch = self._ch

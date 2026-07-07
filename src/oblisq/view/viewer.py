@@ -3,7 +3,7 @@ import tkinter as tk
 
 from tkinterdnd2 import TkinterDnD
 
-from volumeviewer.view.widgets import LabelInput, ValidatedSpinbox
+from oblisq.view.widgets import LabelInput, ValidatedSpinbox
 
 WINDOW_DIMENSIONS = (400, 600)
 
@@ -24,6 +24,13 @@ class ChannelWidgetBox(tk.Frame):
                 label="Color:",
                 input_class=tk.Button
                 ),
+            "show": LabelInput(
+                parent=self,
+                label="",
+                input_class=tk.Checkbutton,
+                input_var=tk.BooleanVar(value=True),
+                label_pos="top",
+            ),                   
             "gamma": LabelInput(
                 parent=self,
                 label="Gamma:",

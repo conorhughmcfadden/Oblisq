@@ -17,11 +17,12 @@ uniform vec2 viewportSize;
 
 uniform float stepWorld = 0.25;       // step length in WORLD units
 
-// contrast params
-uniform float opacity = 0.15;  // global density/opacity
-uniform vec2 cMinMax[5];
+// display params
+uniform vec2  cMinMax[5];
+uniform float opacity   = 0.15;  // global density/opacity
+uniform int   show[5]   = int[5](1, 1, 1, 1, 1);
 uniform float cGamma[5] = float[5](1.0, 1.0, 1.0, 1.0, 1.0);
-uniform vec3 bgColor = vec3(0.0);
+uniform vec3  bgColor   = vec3(0.0);
 
 // channels
 uniform int nChannels = 5; // hard-coded: navigate has 5 channels max
@@ -148,7 +149,11 @@ void main()
         // channels loop    
         for (int i = 0; i < nChannels; ++i)
         {
-            if (i >= nChannels) break;
+            if (i >= nChannels) 
+                break;
+
+            if (!bool(show[i]))
+                continue;
 
             // select current channel
             float s_i = texture(volume[i], uvw).r;
