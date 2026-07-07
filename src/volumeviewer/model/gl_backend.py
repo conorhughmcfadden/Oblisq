@@ -12,6 +12,9 @@ import traceback
 # initialized, so that GL context is available.
 from OpenGL import GL
 
+# constants
+WINDOW_NAME = "Oblisq: Viewer"
+
 #%%
 class Shader:
     """Shader class for compiling and managing OpenGL shaders."""
@@ -840,7 +843,7 @@ class GLVolumeViewBackend:
             glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
             glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
             glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-            self.window = glfw.create_window(window_dim[0], window_dim[1], "Volume Viewer", None, None)
+            self.window = glfw.create_window(window_dim[0], window_dim[1], WINDOW_NAME, None, None)
 
             # Disable user close option
             # TODO: Ideally, user could close and this would set "enabled" to False on the GUI side, 

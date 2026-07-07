@@ -65,7 +65,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Volume Viewer Standalone")
+        self.title("Oblisq: Tools")
         self.geometry(f"{WINDOW_DIMENSIONS[0]}x{WINDOW_DIMENSIONS[1]}")
 
         self.main_frame = tk.Frame(self)
