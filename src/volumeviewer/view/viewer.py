@@ -73,6 +73,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
 
         volume_settings_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
         render_settings_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
+        disply_settings_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
         camera_settings_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")
 
         self.inputs = {
@@ -125,12 +126,19 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
                 label_pos="top",
             ),            
             "invert_lut": LabelInput(
-                parent=render_settings_frame,
+                parent=disply_settings_frame,
                 label="Invert LUT",
                 input_class=tk.Checkbutton,
                 input_var=tk.BooleanVar(value=False),
                 label_pos="top",
-            )          
+            ),
+            "bbox_on": LabelInput(
+                parent=disply_settings_frame,
+                label="Bounding Box",
+                input_class=tk.Checkbutton,
+                input_var=tk.BooleanVar(value=False),
+                label_pos="top",
+            )           
         }
 
         self.buttons = {
@@ -149,6 +157,7 @@ class VolumeViewerStandalone(TkinterDnD.Tk):
 
         volume_settings_frame.pack(fill=tk.X)
         render_settings_frame.pack(fill=tk.X)
+        disply_settings_frame.pack(fill=tk.X)        
         camera_settings_frame.pack(fill=tk.X)        
 
         self.channels_frame = tk.Frame(self.main_frame, borderwidth=2, relief="sunken")

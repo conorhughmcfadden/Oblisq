@@ -537,6 +537,7 @@ class GLVolumeViewBackend:
         self._px          = 0.1478   # µm/pixel (XY)
         self._dz          = 1.0      # µm/slice (Z)
         self._shear_angle = 45.0     # degrees
+        self.draw_bbox    = True
 
     def thread_is_running(self):
         return self.is_running.is_set()
@@ -662,6 +663,12 @@ class GLVolumeViewBackend:
             self.shader.set_float("px", self._px)
         
         self.cmd_q.put(_do)
+
+    def set_bbox_on(self, bbox_on: bool):
+        self.draw_bbox = bool(bbox_on)
+
+        # request render
+        self.need_render = True
 
     def set_min_max(self, min_max: list, ch: int=-1):
         if ch < 0:
@@ -986,7 +993,7 @@ class GLVolumeViewBackend:
         GL.glBindVertexArray(0)
 
         # Draw bounding box via GL_LINES
-        if self.volume_shape and self.bbox_shader:
+        if self.volume_shape and self.bbox_shader and self.draw_bbox:
             nz, ny, nx = self.volume_shape
             px, dz = self._px, self._dz
             S = glm.vec3(px * nx, px * ny, dz * nz)
