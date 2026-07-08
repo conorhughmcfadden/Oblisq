@@ -14,12 +14,11 @@
 ## Installation
 
 ```console
-conda env create -n oblisq python=3.11
-conda activate oblisq
-
 cd /directory/to/cloned/repo/Oblisq
-pip install -e .
+conda env create -n oblisq
 ```
+
+No need for manual pip install, `environment.yml` will handle python version and dependency installs during conda create.
 
 ## Startup
 
