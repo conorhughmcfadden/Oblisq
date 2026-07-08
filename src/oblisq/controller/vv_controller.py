@@ -150,7 +150,11 @@ class ChannelController:
                 self.resolution['px'] = float(self.parent.view.inputs['px'].get())
 
             # load the data
-            self.stack_data = self._lazy_load_downsampled_tif(stack_path, stride=stride)
+            try:
+                import cpptiff
+                self.stack_data = cpptiff.read_tiff(stack_path)
+            except ModuleNotFoundError:
+                self.stack_data = self._lazy_load_downsampled_tif(stack_path, stride=stride)
 
     @staticmethod
     def _lazy_load_downsampled_tif(stack_path: str, stride: int=1) -> np.ndarray:

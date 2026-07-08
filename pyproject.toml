@@ -16,7 +16,8 @@ dependencies = [
     "tkinterdnd2",
     "dask",
     "zarr",
-    "imagecodecs"
+    "imagecodecs",
+    "cpp-tiff"
 ]
 
 [project.scripts]
