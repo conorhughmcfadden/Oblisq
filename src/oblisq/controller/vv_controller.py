@@ -104,8 +104,8 @@ class ChannelController:
     def _gl_update_min_max(self):
 
         try:
-            _min = float(self.min.get())
-            _max = float(self.max.get())
+            _min = float(1.5 * self.min.get())
+            _max = float(0.5 * self.max.get())
         except:
             return
 
@@ -150,10 +150,15 @@ class ChannelController:
                 self.resolution['px'] = float(self.parent.view.inputs['px'].get())
 
             # load the data
+            use_cpp_tiff = True
             try:
                 import cpptiff
-                self.stack_data = cpptiff.read_tiff(stack_path)
             except ModuleNotFoundError:
+                use_cpp_tiff = False
+            
+            if use_cpp_tiff and stride == 1:
+                self.stack_data = cpptiff.read_tiff(stack_path)
+            else:
                 self.stack_data = self._lazy_load_downsampled_tif(stack_path, stride=stride)
 
     @staticmethod
