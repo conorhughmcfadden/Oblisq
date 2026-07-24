@@ -1,4 +1,5 @@
 
+import ast
 import numpy as np
 import tifffile
 import pathlib
@@ -92,7 +93,7 @@ class ChannelController:
         self._gl_update_min_max()
 
         for z, img in enumerate(self.stack_data):
-            self.parent.backend.data_q.put_nowait((img, z, self.id))
+            self.parent.backend.submit_slice(img, z, self.id)
 
     def _gl_update_color(self):
 
@@ -128,7 +129,9 @@ class ChannelController:
 
             # z-spacing
             try:
-                image_desc = dict(eval(tif.pages[0].tags['ImageDescription'].value))
+                image_desc = dict(
+                    ast.literal_eval(tif.pages[0].tags['ImageDescription'].value)
+                )
                 self.resolution['dz'] = image_desc['spacing']
                 self.parent.view.inputs['dz'].set(self.resolution['dz'])
             except Exception:
