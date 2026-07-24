@@ -310,8 +310,6 @@ class Camera:
             Even in Frame view mode.
             Communicate to GLFrameViewer through parent_viewer.
         """
-        viewer = self.parent_viewer
-
         # if viewer.mode == "volume":
             # 3D Events
         if action == glfw.PRESS:
@@ -355,8 +353,6 @@ class Camera:
 
     def _mouse_move(self):
         # viewer mode governs behaviour
-        viewer = self.parent_viewer
-
         x_pos, y_pos = glfw.get_cursor_pos(self.window)
         if self.first_mouse:
             self.last_mouse_x = x_pos
@@ -501,11 +497,12 @@ class GLVolumeViewBackend:
     def __init__(self):
         
         # concurrency
-        self.cmd_q       = queue.Queue()
-        self.data_q      = queue.Queue()
+        self.cmd_q       = queue.Queue(maxsize=256)
+        self.data_q      = queue.Queue(maxsize=8)
         self.is_running  = threading.Event()
         self.is_ready    = threading.Event()
         self.thread      = None
+        self.startup_error = None
         self.need_render = False
 
         # GLFW window
@@ -545,20 +542,50 @@ class GLVolumeViewBackend:
     def thread_is_running(self):
         return self.is_running.is_set()
 
+    @staticmethod
+    def _queue_put(q: "queue.Queue", item) -> None:
+        """Bounded, non-blocking put: drops the oldest queued item on overflow
+        instead of blocking the caller, which could hang forever if the render
+        thread has died (a bounded queue with a dead consumer never drains)."""
+        try:
+            q.put_nowait(item)
+        except queue.Full:
+            try:
+                q.get_nowait()
+            except queue.Empty:
+                pass
+            try:
+                q.put_nowait(item)
+            except queue.Full:
+                pass
+
     def start(self, window_dim: tuple=(800, 600)):
-        """Start the rendering thread and create the GLFW window."""
+        """Start the rendering thread and create the GLFW window.
+
+        Raises
+        ------
+        RuntimeError
+            If the render thread fails to initialize (e.g. GLFW/OpenGL context
+            creation failure). ``thread_is_running()`` will report False in
+            this case rather than leaving stale "running" state.
+        """
         if self.thread and self.thread.is_alive():
             return  # already running
 
+        self.startup_error = None
         self.thread = threading.Thread(
-            target=self._render_thread, 
+            target=self._render_thread,
             args=(window_dim,)
             )
         self.thread.start()
         self.is_running.set()
-        
-        # Wait until the render thread signals it's ready
+
+        # Wait until the render thread signals it's ready (or failed)
         self.is_ready.wait()
+
+        if self.startup_error is not None:
+            error, self.startup_error = self.startup_error, None
+            raise RuntimeError("Failed to start GL render thread") from error
     
     def show_window(self):
         """Make the GLFW window visible (call after start())."""
@@ -572,8 +599,8 @@ class GLVolumeViewBackend:
         self.is_running.clear()
 
         # Wake the queues (if waiting)
-        self.cmd_q.put(lambda: None)
-        self.data_q.put(lambda: None)
+        self._queue_put(self.cmd_q, lambda: None)
+        self._queue_put(self.data_q, lambda: None)
 
         # No longer ready/need render
         self.is_ready.clear()
@@ -635,7 +662,16 @@ class GLVolumeViewBackend:
 
     def submit_slice_given_state(self, image: np.ndarray):
         """Submit slice data to the GL thread for upload."""
-        self.data_q.put((image, self._z, self._ch))
+        self._queue_put(self.data_q, (image, self._z, self._ch))
+
+    def submit_slice(self, image: np.ndarray, z: int, ch: int) -> None:
+        """Enqueue a single slice for GPU upload (thread-safe).
+
+        Preferred over pushing to ``data_q`` directly: drops the oldest
+        queued slice on overflow instead of raising ``queue.Full``, so a
+        slow or dead render thread can't block the caller.
+        """
+        self._queue_put(self.data_q, (image, z, ch))
 
     def set_volume_dimensions(self, dz: float=1.0, px: float=1.0, n_slices: int=0):
         """Wrapper func to set physical primitives."""
@@ -655,7 +691,7 @@ class GLVolumeViewBackend:
             self.shader.use()
             self.shader.set_float("dz", self._dz)
         
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_px(self, px: float):
         self._px = self.stride * px
@@ -665,7 +701,7 @@ class GLVolumeViewBackend:
             self.shader.use()
             self.shader.set_float("px", self._px)
         
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_bbox_on(self, bbox_on: bool):
         self.draw_bbox = bool(bbox_on)
@@ -686,7 +722,7 @@ class GLVolumeViewBackend:
                 int(show)
                 )
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_min_max(self, min_max: list, ch: int=-1):
         if ch < 0:
@@ -703,7 +739,7 @@ class GLVolumeViewBackend:
                 np.array(min_max, dtype=np.float32)/65535.
                 )
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_gamma(self, gamma: float, ch: int=-1):
         if ch < 0:
@@ -718,7 +754,7 @@ class GLVolumeViewBackend:
                 gamma
                 )
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_world_step(self, world_step: float):
         if world_step < 0.05:
@@ -732,7 +768,7 @@ class GLVolumeViewBackend:
                 world_step
                 )
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_shear_angle(self, shear_angle: float):
 
@@ -747,7 +783,7 @@ class GLVolumeViewBackend:
                 shear_angle
                 )
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_opacity(self, opacity: float):
 
@@ -760,7 +796,7 @@ class GLVolumeViewBackend:
                 opacity
                 )
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_invert_lut(self, invert: bool):
         """Toggle ImageJ-style inverted LUT display (light background, hue preserved)."""
@@ -772,7 +808,7 @@ class GLVolumeViewBackend:
             self._ensure_gl_ready()
             self._gl_apply_invert_lut()
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def set_enabled(self, enabled: bool):
         # Handles thread start/stop and window visibility on user request from controller
@@ -818,7 +854,7 @@ class GLVolumeViewBackend:
             finally:
                 done.set()
 
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
         if not done.wait(timeout=timeout):
             raise RuntimeError("Timed out waiting for GL thread to capture viewport")
@@ -871,7 +907,7 @@ class GLVolumeViewBackend:
             # Set GL context
             try:
                 glfw.make_context_current(self.window)
-            except:
+            except Exception:
                 glfw.destroy_window(self.window)
                 glfw.terminate()
                 raise RuntimeError("Failed to create OpenGL context! Your system may not support the required OpenGL version.")
@@ -888,6 +924,8 @@ class GLVolumeViewBackend:
         except Exception as e:
             print("[GL Thread] Fatal Error:", e)
             traceback.print_exc()
+            self.startup_error = e
+            self.is_running.clear()
             self.is_ready.set()  # unblock start() if waiting
         
         finally:
@@ -954,10 +992,14 @@ class GLVolumeViewBackend:
             while True:
                 try:
                     image, z, ch = self.data_q.get_nowait()
+                except queue.Empty:
+                    break
+                try:
                     self.add_slice(image, z, ch)
                     self.need_render = True
-                except:
-                    break
+                except Exception as e:
+                    print(f"[GL Thread] Error adding slice: {e}")
+                    traceback.print_exc()
 
             # Update timer
             self.frame_timer.tick(verbose=False)
@@ -1126,7 +1168,7 @@ class GLVolumeViewBackend:
             self._set_volume_texture_units()
 
         # Submit to the command queue
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def request_new_transfer_texture(self):
         
@@ -1141,7 +1183,7 @@ class GLVolumeViewBackend:
             self._set_transfer_texture_unit()
 
         # Submit to the command queue
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def request_slice_upload(self, image: np.ndarray, z: int, ch: int):
         """Enqueue a command to upload a single slice (z, ch) of the volume texture."""
@@ -1151,7 +1193,7 @@ class GLVolumeViewBackend:
             self._gl_upload_slice_z(image, z, ch)
 
         # Submit to the command queue
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     def request_set_channel_color(self, ch: int, color: list[float]):
         """Enqueue an update to specific row in the transfer texture.
@@ -1165,7 +1207,7 @@ class GLVolumeViewBackend:
             self._gl_set_channel_lut(ch, color)
 
         # Submit to the command queue
-        self.cmd_q.put(_do)
+        self._queue_put(self.cmd_q, _do)
 
     # --- (Private) GL-specific methods ---
 

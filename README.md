@@ -13,12 +13,26 @@
 
 ## Installation
 
+### For development (conda)
+
 ```console
 cd /directory/to/cloned/repo/Oblisq
 conda env create -n oblisq
 ```
 
 No need for manual pip install, `environment.yml` will handle python version and dependency installs during conda create.
+
+### From PyPI
+
+Oblisq ships as two layers:
+
+- `pip install oblisq` installs only the OpenGL rendering core
+  (`oblisq.gl_backend`) — numpy, PyOpenGL, glfw, and PyGLM. This is what a
+  host application (e.g. [Navigate](https://github.com/TheDeanLab/navigate/))
+  should depend on if it just wants to embed live 3D rendering.
+- `pip install "oblisq[app]"` additionally installs the standalone drag-and-drop
+  viewer's dependencies (tifffile, dask, zarr, etc.) and unlocks the `oblisq`
+  console script described below.
 
 ## Startup
 

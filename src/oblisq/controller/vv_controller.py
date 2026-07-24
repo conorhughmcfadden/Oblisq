@@ -1,4 +1,5 @@
 
+import ast
 import numpy as np
 import tifffile
 import pathlib
@@ -92,7 +93,7 @@ class ChannelController:
         self._gl_update_min_max()
 
         for z, img in enumerate(self.stack_data):
-            self.parent.backend.data_q.put_nowait((img, z, self.id))
+            self.parent.backend.submit_slice(img, z, self.id)
 
     def _gl_update_color(self):
 
@@ -106,7 +107,7 @@ class ChannelController:
         try:
             _min = float(1.5 * self.min.get())
             _max = float(0.5 * self.max.get())
-        except:
+        except Exception:
             return
 
         self.parent.backend.set_min_max([_min, _max], self.id)
@@ -114,7 +115,7 @@ class ChannelController:
     def _gl_update_gamma(self):
         try:
             _gamma = float(self.gamma.get())
-        except:
+        except Exception:
             return
 
         self.parent.backend.set_gamma(_gamma, self.id)
@@ -128,10 +129,12 @@ class ChannelController:
 
             # z-spacing
             try:
-                image_desc = dict(eval(tif.pages[0].tags['ImageDescription'].value))
+                image_desc = dict(
+                    ast.literal_eval(tif.pages[0].tags['ImageDescription'].value)
+                )
                 self.resolution['dz'] = image_desc['spacing']
                 self.parent.view.inputs['dz'].set(self.resolution['dz'])
-            except:
+            except Exception:
                 self.resolution['dz'] = float(self.parent.view.inputs['dz'].get())
 
             # xy-resolution
@@ -146,7 +149,7 @@ class ChannelController:
 
                 self.resolution['px'] = microns / pixels
                 self.parent.view.inputs['px'].set(self.resolution['px'])
-            except:
+            except Exception:
                 self.resolution['px'] = float(self.parent.view.inputs['px'].get())
 
             # load the data
@@ -252,7 +255,7 @@ class VVStandaloneController:
 
         try:
             value = float(variable.get())
-        except:
+        except Exception:
             # Handle "" and other such invalid inputs
             return
 

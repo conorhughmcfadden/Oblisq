@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.9", "3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package (dev extra)
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Run tests
+        run: pytest -v
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Verify shader files are packaged in the wheel
+        shell: python
+        run: |
+          import glob
+          import sys
+          import zipfile
+
+          wheel = glob.glob("dist/*.whl")[0]
+          with zipfile.ZipFile(wheel) as archive:
+              names = archive.namelist()
+
+          shader_files = [n for n in names if n.endswith((".vert", ".frag"))]
+          if not shader_files:
+              print("No shader files found in wheel:", names)
+              sys.exit(1)
+          print("Found shader files in wheel:", shader_files)
