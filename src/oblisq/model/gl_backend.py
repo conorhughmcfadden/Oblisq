@@ -310,8 +310,6 @@ class Camera:
             Even in Frame view mode.
             Communicate to GLFrameViewer through parent_viewer.
         """
-        viewer = self.parent_viewer
-
         # if viewer.mode == "volume":
             # 3D Events
         if action == glfw.PRESS:
@@ -355,8 +353,6 @@ class Camera:
 
     def _mouse_move(self):
         # viewer mode governs behaviour
-        viewer = self.parent_viewer
-
         x_pos, y_pos = glfw.get_cursor_pos(self.window)
         if self.first_mouse:
             self.last_mouse_x = x_pos
@@ -871,7 +867,7 @@ class GLVolumeViewBackend:
             # Set GL context
             try:
                 glfw.make_context_current(self.window)
-            except:
+            except Exception:
                 glfw.destroy_window(self.window)
                 glfw.terminate()
                 raise RuntimeError("Failed to create OpenGL context! Your system may not support the required OpenGL version.")
@@ -956,7 +952,7 @@ class GLVolumeViewBackend:
                     image, z, ch = self.data_q.get_nowait()
                     self.add_slice(image, z, ch)
                     self.need_render = True
-                except:
+                except queue.Empty:
                     break
 
             # Update timer

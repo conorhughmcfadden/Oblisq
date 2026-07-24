@@ -3,25 +3,62 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "Oblisq"
+name = "oblisq"
 version = "0.1.0"
 description = "Oblisq: 3D render engine for oblique microscopy data"
-requires-python = ">=3.11"
+readme = "README.md"
+requires-python = ">=3.9"
+license-files = ["LICENSE.md"]
+authors = [{name = "Conor McFadden", email = "conorhughmcfadden@gmail.com"}]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "numpy<2.3.0",
     "PyOpenGL",
     "glfw",
     "PyGLM",
-    "tifffile>=2026",
+]
+
+[project.optional-dependencies]
+app = [
+    "tifffile",
     "tkinterdnd2",
     "dask",
     "zarr",
     "imagecodecs",
-    "cpp-tiff"
+    "cpp-tiff",
 ]
+dev = [
+    "pytest",
+    "ruff",
+    "build",
+    "twine",
+]
+
+[project.urls]
+Source = "https://github.com/conorhughmcfadden/Oblisq"
+Homepage = "https://github.com/conorhughmcfadden/Oblisq"
 
 [project.scripts]
 oblisq = "oblisq.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+oblisq = ["model/shaders/*.vert", "model/shaders/*.frag"]
+
+[tool.ruff.lint]
+# Conservative rule set for now (pyflakes + pycodestyle errors): catches real bugs
+# (undefined names, syntax issues) without blocking CI on pre-existing style choices
+# across the codebase. Can be broadened later as a deliberate cleanup pass.
+select = ["E4", "E7", "E9", "F"]

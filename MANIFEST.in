@@ -1,0 +1,1 @@
+recursive-include src/oblisq/model/shaders *.vert *.frag
