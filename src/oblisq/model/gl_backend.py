@@ -2,7 +2,7 @@ import math
 import numpy as np
 import glfw
 import glm
-from typing import Union
+from typing import Union, Tuple
 import threading
 import queue
 import time
@@ -627,12 +627,22 @@ class GLVolumeViewBackend:
             except queue.Empty:
                 break
 
-    def add_slice(self, image: np.ndarray, z: int, ch: int):
+    def prepare_data_for_upload(
+            self, 
+            data: Union[Tuple[np.ndarray, int, int], # (image, z, ch) -> slice upload
+                        Tuple[np.ndarray, int]]      # (volume, ch)   -> full volume upload
+                        ) -> None:
         """Submit a single slice (z, ch) of the volume for rendering."""
 
+        try:
+            assert isinstance(data, tuple) and len(data) in (2, 3), "Data must be a tuple of (image, z, ch) or (volume, ch)"
+        except AssertionError as e:
+            raise ValueError(str(e))
+
+        incoming_shape = (self.num_slices,) + data[0].shape if len(data) == 3 \
+                         else data[0].shape
+
         if self.volume_shape is not None:
-            incoming_shape = (self.num_slices,) + image.shape
-            
             # Guard against shape mismatch
             if incoming_shape != self.volume_shape:
                 # Clear current vol shape
@@ -640,20 +650,20 @@ class GLVolumeViewBackend:
                 # Free textures
                 self._gl_clear_textures()
                 # Try again
-                self.add_slice(image, z, ch)
+                self.prepare_data_for_upload(data)
 
             # If no mismatch, we can request the slice upload
-            self.request_slice_upload(image, z, ch)
+            self.request_data_upload(data)
         else:
             # Send a request to the queue to create a new volume texture with the new shape
-            self.request_new_volume_texture((self.num_slices,) + image.shape)
+            self.request_new_volume_texture(incoming_shape)
 
             # Request also a new transfer texture
             if not self.transfer_texture:
                 self.request_new_transfer_texture()
 
             # Try to add the slice again (after texture is created)
-            self.add_slice(image, z, ch)
+            self.prepare_data_for_upload(data)
 
     def set_channel_and_slice_idx(self, ch: int, z: int):
         """Set the current channel and slice index for rendering."""
@@ -672,6 +682,20 @@ class GLVolumeViewBackend:
         slow or dead render thread can't block the caller.
         """
         self._queue_put(self.data_q, (image, z, ch))
+
+    def submit_data(
+            self, 
+            data: Union[Tuple[np.ndarray, int, int], # (image, z, ch) -> slice upload
+                        Tuple[np.ndarray, int]]      # (volume, ch)   -> full volume upload
+                        ) -> None:
+        """Enqueue data for GPU upload (thread-safe).
+        
+        Tuple structure determines whether it's a single slice or full volume upload.
+        """
+
+        print(f"[GL] Enqueuing data for upload: {data[0].shape}, z={data[1] if len(data) == 3 else 'N/A'}, ch={data[2] if len(data) == 3 else data[1]}")
+
+        self._queue_put(self.data_q, data)
 
     def set_volume_dimensions(self, dz: float=1.0, px: float=1.0, n_slices: int=0):
         """Wrapper func to set physical primitives."""
@@ -991,11 +1015,11 @@ class GLVolumeViewBackend:
             # Process all pending slice data
             while True:
                 try:
-                    image, z, ch = self.data_q.get_nowait()
+                    data = self.data_q.get_nowait()
                 except queue.Empty:
                     break
                 try:
-                    self.add_slice(image, z, ch)
+                    self.prepare_data_for_upload(data)
                     self.need_render = True
                 except Exception as e:
                     print(f"[GL Thread] Error adding slice: {e}")
@@ -1185,12 +1209,27 @@ class GLVolumeViewBackend:
         # Submit to the command queue
         self._queue_put(self.cmd_q, _do)
 
-    def request_slice_upload(self, image: np.ndarray, z: int, ch: int):
-        """Enqueue a command to upload a single slice (z, ch) of the volume texture."""
+    def request_data_upload(
+            self, 
+            data: Union[Tuple[np.ndarray, int, int], # (image, z, ch) -> slice upload
+                        Tuple[np.ndarray, int]]      # (volume, ch)   -> full volume upload
+                        ) -> None:
+        """Enqueue a command to upload data to the GPU. 
+        The data can be either a single slice (z, ch) or a full volume (ch).
+        The _gl_upload_ call is determined by the structure of the data tuple.
+        """
         
         def _do():
             self._ensure_gl_ready()
-            self._gl_upload_slice_z(image, z, ch)
+
+            if len(data) == 3:
+                image, z, ch = data
+                self._gl_upload_slice_z(image, z, ch)
+            elif len(data) == 2:
+                volume, ch = data
+                self._gl_upload_full_volume(volume, ch)
+            else:
+                return  # invalid data structure, ignore
 
         # Submit to the command queue
         self._queue_put(self.cmd_q, _do)
@@ -1233,6 +1272,29 @@ class GLVolumeViewBackend:
             GL.GL_RED,                           # format
             GL.GL_UNSIGNED_SHORT,                # uint16
             slice.astype(np.uint16, copy=False)  # image data
+        )
+
+    def _gl_upload_full_volume(self, volume: np.ndarray, ch: int=0):
+        """Upload a full 3D volume to the given color channel texture."""
+        nz, ny, nx = volume.shape
+        tex = self.volume_textures[ch]
+
+        GL.glBindTexture(GL.GL_TEXTURE_3D, tex)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+
+        # update the entire volume
+        GL.glTexSubImage3D(
+            GL.GL_TEXTURE_3D, 
+            0,                                   # level
+            0,                                   # xoffset (none)
+            0,                                   # yoffset (none)
+            0,                                   # zoffset (none)
+            nx,                                  # width
+            ny,                                  # height
+            nz,                                  # depth (full volume)
+            GL.GL_RED,                           # format
+            GL.GL_UNSIGNED_SHORT,                # uint16
+            volume.astype(np.uint16, copy=False) # image data
         )
 
     def _gl_make_volume_texture(self, shape: tuple):
