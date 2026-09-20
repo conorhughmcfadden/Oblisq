@@ -692,9 +692,6 @@ class GLVolumeViewBackend:
         
         Tuple structure determines whether it's a single slice or full volume upload.
         """
-
-        print(f"[GL] Enqueuing data for upload: {data[0].shape}, z={data[1] if len(data) == 3 else 'N/A'}, ch={data[2] if len(data) == 3 else data[1]}")
-
         self._queue_put(self.data_q, data)
 
     def set_volume_dimensions(self, dz: float=1.0, px: float=1.0, n_slices: int=0):
@@ -825,8 +822,6 @@ class GLVolumeViewBackend:
     def set_invert_lut(self, invert: bool):
         """Toggle ImageJ-style inverted LUT display (light background, hue preserved)."""
         self.invert_lut = bool(invert)
-
-        print(f"[GL] Invert LUT set to {self.invert_lut}")
 
         def _do():
             self._ensure_gl_ready()
