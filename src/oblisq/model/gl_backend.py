@@ -145,6 +145,13 @@ class Camera:
         self.yaw    = math.atan2(off.x, off.z)  # yaw=0 → +Z
         self.pitch  = math.asin(max(-1.0, min(1.0, off.y / max(self.radius, 1e-8))))
 
+        # timestep
+        self.dt = 0.0
+
+        # angular velocity
+        self.ang_0 = 0. # yaw only
+        self.angular_velocity = 0.
+
         # zoom/pan state (2D)
         self.pan_xy  = [0., 0.]
         self.zoom_xy = 1.0
@@ -205,6 +212,9 @@ class Camera:
         # self.is_ortho_proj = True
 
     def update(self, dt=0.0):
+        # store dt for use elsewhere (e.g. scroll zoom)
+        self.dt = dt
+
         # window size/pos
         win_w, win_h = glfw.get_framebuffer_size(self.window)
         win_x, win_y = glfw.get_window_pos(self.window)
@@ -217,8 +227,21 @@ class Camera:
             self.first_mouse = True
 
         # inputs
-        self._mouse_move()     # pixels are frame-local; don't scale by dt
-        self._scroll_move(dt)  # optional dt use is fine
+        self._mouse_move()   # pixels are frame-local; don't scale by dt
+        self._scroll_move()  # optional dt use is fine
+
+        # handle free orbit
+        if not self.is_rotating and not self.is_translating and abs(self.angular_velocity) > 0.0:
+            # apply angular velocity
+            self.yaw += self.ROT_SENS * self.angular_velocity * dt
+
+            # TODO: Pitch doesn't work due to gimbal lock...
+            #       Move towards quaternion-based rotation for free orbit.
+
+            self._recompute_position()
+
+            # Request render
+            self.parent_viewer.need_render = True
 
         # bases + matrices
         self._update_basis()
@@ -315,7 +338,11 @@ class Camera:
         if action == glfw.PRESS:
             if button == glfw.MOUSE_BUTTON_LEFT:
                 self.is_rotating = True
-                self.first_mouse = True                                        
+                self.first_mouse = True
+
+                # Set init points for angular velocity
+                self.ang_0 = self.yaw
+
             elif button == glfw.MOUSE_BUTTON_RIGHT:
                 self.is_translating = True
                 self._was_panning = True
@@ -323,6 +350,12 @@ class Camera:
         else:
             if button == glfw.MOUSE_BUTTON_LEFT:
                 self.is_rotating = False
+
+                # Calculate angular velocity based on mouse movement
+                self.angular_velocity = (self.yaw - self.ang_0) / self.dt
+
+                print(self.angular_velocity)
+
             elif button == glfw.MOUSE_BUTTON_RIGHT:
                 self.is_translating = False
                 # on pan end: recenter pivot under cursor
@@ -393,11 +426,11 @@ class Camera:
             self.parent_viewer.need_render = True
 
 
-    def _scroll_move(self, dt):
-        if not self.scroll_offset or dt == 0.0:
+    def _scroll_move(self):
+        if not self.scroll_offset or self.dt == 0.0:
             return
         
-        scale = math.exp(-self.scroll_offset * self.ZOOM_SENS * (dt if dt > 0 else 1.0))
+        scale = math.exp(-self.scroll_offset * self.ZOOM_SENS * (self.dt if self.dt > 0 else 1.0))
         if self.is_ortho_proj:
             self.ortho_size = max(self.MIN_ORTHO_SIZE, self.ortho_size * scale)
         else:
