@@ -92,8 +92,8 @@ class ChannelController:
         self._gl_update_color()
         self._gl_update_min_max()
 
-        for z, img in enumerate(self.stack_data):
-            self.parent.backend.submit_slice(img, z, self.id)
+        # Upload the full stack in one shot
+        self.parent.backend.submit_data((self.stack_data, self.id))
 
     def _gl_update_color(self):
 
@@ -272,10 +272,6 @@ class VVStandaloneController:
         for cc in self.channels.values():
             cc.view.destroy()
         self.channels.clear()
-
-        # Reset if running
-        # if self.backend.thread_is_running():
-        #     self.backend.stop()
 
         # Start GL backend
         if not self.backend.thread_is_running():
